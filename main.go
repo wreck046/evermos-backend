@@ -1,6 +1,8 @@
 package main
 
 import (
+	"evermos-backend/config"
+	"evermos-backend/models"
 	"evermos-backend/routes"
 
 	"github.com/gin-gonic/gin"
@@ -11,11 +13,9 @@ func main() {
 
 	routes.RegisterRoutes(router)
 
-	// router := gin.Default()
-	// router.GET("/health", func(c *gin.Context) {
-	// 	c.JSON(200, gin.H{
-	// 		"status": "healthy",
-	// 	})
-	// })
+	config.ConnectDatabase()
+	config.DB.AutoMigrate(
+		&models.User{},
+	)
 	router.Run()
 }

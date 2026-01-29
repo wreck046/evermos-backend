@@ -3,9 +3,12 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 
+	"evermos-backend/config"
+	"evermos-backend/models"
 	"evermos-backend/utils"
-) 
+)
 
+//mapping saat belum menggunakan database. uji coba logic
 var users = map[string]string{}
 
 type RegisterRequest struct {
@@ -29,31 +32,53 @@ var storeID = 1
 
 func Register(c *gin.Context){
 	var req RegisterRequest
+	var existingUser models.User
 
-	err := c.ShouldBindJSON(&req)
-	if err != nil{
+	if err := c.ShouldBindJSON(&req); err != nil{
 		c.JSON(400, gin.H{
 			"error" : "invalid request",
 		})
 		return
 	}
 
-	_, exist := users[req.Email]
-	if exist{
-		c.JSON(409, gin.H{
+	err := config.DB.
+	Where("email = ?", req.Email).
+	First(&existingUser).
+	Error
+
+	if err == nil{
+		c.JSON(400, gin.H{
 			"error" : "email is already used",
 		})
 		return
 	}
 
-	users[req.Email] = req.Password
-	namaToko := "Toko " + req.Email
-	stores[req.Email] = Store{
-		ID : storeID,
-		Name : namaToko,
-		Owner : req.Email,
+	user := models.User{
+		Email: req.Email,
+		Password: req.Password,
+		IsAdmin: false,
 	}
-	storeID += 1
+
+	config.DB.Create(&user)
+
+	//dibawah ini merupakan fungsional register user dengan mapping/output JSON untuk testing logic
+
+	// _, exist := users[req.Email]
+	// if exist{
+	// 	c.JSON(400, gin.H{
+	// 		"error" : "email is already used",
+	// 	})
+	// 	return
+	// }
+
+	// users[req.Email] = req.Password
+	// namaToko := "Toko " + req.Email
+	// stores[req.Email] = Store{
+	// 	ID : storeID,
+	// 	Name : namaToko,
+	// 	Owner : req.Email,
+	// }
+	// storeID += 1
 
 	c.JSON(200, gin.H{
 		"message": "user registered successfully",
