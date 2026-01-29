@@ -61,50 +61,35 @@ func Register(c *gin.Context){
 
 	config.DB.Create(&user)
 
-	//dibawah ini merupakan fungsional register user dengan mapping/output JSON untuk testing logic
-
-	// _, exist := users[req.Email]
-	// if exist{
-	// 	c.JSON(400, gin.H{
-	// 		"error" : "email is already used",
-	// 	})
-	// 	return
-	// }
-
-	// users[req.Email] = req.Password
-	// namaToko := "Toko " + req.Email
-	// stores[req.Email] = Store{
-	// 	ID : storeID,
-	// 	Name : namaToko,
-	// 	Owner : req.Email,
-	// }
-	// storeID += 1
-
-	c.JSON(200, gin.H{
+	c.JSON(201, gin.H{
 		"message": "user registered successfully",
 	})	
 }
 
 func Login(c *gin.Context){
 	var login LoginRequest
-	err := c.ShouldBindJSON(&login)
-	if err != nil{
+	if err := c.ShouldBindJSON(&login); err != nil{
 		c.JSON(400, gin.H{
 			"error" : "invalid request",
 		})
 		return
 	}
 
-	storedPassword, exists := users[login.Email]
+	var user models.User
+	err := config.DB.
+	Where("email = ?", login.Email).
+	First(&user).
+	Error
+	//storedPassword, exists := users[login.Email]
 
-	if !exists {
+	if err != nil {
 		c.JSON(401, gin.H{
 			"error" : "email not registered",
 		})
 		return
 	}
 
-	if storedPassword != login.Password {
+	if user.Password != login.Password {
 		c.JSON(401, gin.H{
 			"error" : "wrong password",
 		})
@@ -112,6 +97,12 @@ func Login(c *gin.Context){
 	}
 
 	token, err := utils.GenerateToken(login.Email)
+	if err != nil{
+		c.JSON(500, gin.H{
+			"error" : "failed to generate token",
+		})
+		return
+	}
 	
 	c.JSON(200, gin.H{
 		"message": "user logged in successfully",
