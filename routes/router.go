@@ -24,4 +24,7 @@ func RegisterRoutes(router *gin.Engine){
 	router.GET("/my-addresses", middleware.JWTAuth, handlers.MyAddresses)
 
 	router.POST("/create-transaction", middleware.JWTAuth, handlers.CreateTransaction)
+
+	router.GET("/provinces", handlers.GetProvinces)
+	router.GET("/cities", handlers.GetCities)
 }
