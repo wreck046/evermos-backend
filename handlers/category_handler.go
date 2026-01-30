@@ -1,32 +1,33 @@
 package handlers
 
 import (
+	"evermos-backend/config"
+	"evermos-backend/models"
+
 	"github.com/gin-gonic/gin"
 )
-type Category struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-}
+
 
 type CreateCategoryRequest struct {
 	Name string `json:"name"`
 }
 
-var categories = []Category{}
-var categoryID = 1
-
 func CreateCategory(c *gin.Context) {
 	var req CreateCategoryRequest
-	err := c.ShouldBindJSON(&req)
-	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "invalid request"})
 		return
 	}
-	category := Category{
-		ID:   categoryID,
+
+	category := models.Category{
 		Name: req.Name,
 	}
-	categories = append(categories, category)
-	categoryID++
+
+	if err := config.DB.Create(&category).Error; err != nil {
+		c.JSON(500, gin.H{"error": "failed to create category"})
+		return
+	}
+
 	c.JSON(201, category)
 }

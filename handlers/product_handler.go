@@ -1,71 +1,91 @@
 package handlers
 
 import (
+	"evermos-backend/config"
+	"evermos-backend/models"
+
 	"github.com/gin-gonic/gin"
 )
-
-type Product struct {
-	ID		int     `json:"id"`
-	Name 	string  `json:"name"`
-	Price 	int `json:"price"`
-	StoreID int  `json:"store_id"`
-}
 
 type CreateProductRequest struct {
 	Name 	string  `json:"name"`
 	Price 	int `json:"price"`
 }
 
-var products = []Product{}
-var productID = 1
-
 func CreateProduct(c *gin.Context){
 	var createreqprod CreateProductRequest
-	email := c.GetString("email")
-
-	err := c.ShouldBindJSON(&createreqprod)
-	if err != nil{
+	if err := c.ShouldBindJSON(&createreqprod); err != nil{
 		c.JSON(400, gin.H{
 			"error": "invalid request",
 		})
 		return
 	}
 
-	store, exists := stores[email]
-	if !exists{
+	email := c.GetString("email")
+	var user models.User
+	if err := config.DB.
+	Where("email = ?", email).
+	First(&user).
+	Error; err != nil{
 		c.JSON(404, gin.H{
-			"error": "store not found/not created",
+			"error": "user not found",
 		})
 		return
 	}
 
-	product := Product{
-		ID : productID,
-		Name : createreqprod.Name,
-		Price : createreqprod.Price,
-		StoreID : store.ID,
+	var store models.Store
+	if err := config.DB.
+	Where("owner_id = ?", user.ID).
+	First(&store).
+	Error; err != nil{
+		c.JSON(404, gin.H{
+			"error": "store not found",
+		})
+		return
 	}
 
-	products = append(products, product)
-	productID++
+	product := models.Product{
+		Name: createreqprod.Name,
+		Price: createreqprod.Price,
+		StoreID: store.ID,
+	}
+
+	config.DB.Create(&product)
 
 	c.JSON(201, product)
 }
 
-func MyProducts(c *gin.Context){
+func MyProducts(c *gin.Context) {
 	email := c.GetString("email")
-	store, exists := stores[email]
-	if !exists{
+
+	var user models.User
+	if err := config.DB.
+		Where("email = ?", email).
+		First(&user).
+		Error; err != nil {
+
 		c.JSON(404, gin.H{
-			"error": "store not found/not created",
+			"error": "user not found",
 		})
 		return
 	}
-	var myProducts []Product
-	for _, prod := range products{
-		if prod.StoreID == store.ID{
-			myProducts = append(myProducts, prod)
-		}
+
+	var store models.Store
+	if err := config.DB.
+		Where("owner_id = ?", user.ID).
+		First(&store).
+		Error; err != nil {
+
+		c.JSON(404, gin.H{
+			"error": "store not found",
+		})
+		return
 	}
-	c.JSON(200, myProducts)
+
+	var products []models.Product
+	config.DB.
+		Where("store_id = ?", store.ID).
+		Find(&products)
+
+	c.JSON(200, products)
 }

@@ -15,7 +15,7 @@ func RegisterRoutes(router *gin.Engine){
 	router.GET("/profile", middleware.JWTAuth, handlers.Me)
 	router.GET("/my-store", middleware.JWTAuth, handlers.MyStore)
 
-	router.POST("/create-product", middleware.JWTAuth, handlers.CreateProduct)
+	router.POST("/products", middleware.JWTAuth, handlers.CreateProduct)
 	router.GET("/my-products", middleware.JWTAuth, handlers.MyProducts)
 
 	router.POST("/categories", middleware.JWTAuth, middleware.AdminOnly, handlers.CreateCategory)

@@ -16,6 +16,12 @@ func main() {
 	config.ConnectDatabase()
 	config.DB.AutoMigrate(
 		&models.User{},
+		&models.Store{},
+		&models.Product{},
+		&models.Address{},
+		&models.Transaction{},
+		&models.TransactionItem{},
+		&models.Category{},
 	)
 	router.Run()
 }

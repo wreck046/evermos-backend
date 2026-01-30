@@ -1,28 +1,11 @@
 package handlers
 
 import (
+	"evermos-backend/config"
+	"evermos-backend/models"
+
 	"github.com/gin-gonic/gin"
 )
-
-type Transaction struct {
-	ID        int    `json:"id"`
-	Owner     string `json:"owner"`
-	AddressID int    `json:"address_id"`
-	Total     int    `json:"total"`
-}
-
-type TransactionItem struct {
-	TransactionID int    `json:"transaction_id"`
-	ProductID     int    `json:"product_id"`
-	ProductName   string `json:"product_name"`
-	Price         int    `json:"price"`
-	Qty           int    `json:"qty"`
-	Subtotal      int    `json:"subtotal"`
-}
-
-var transactions = []Transaction{}
-var transactionItems = []TransactionItem{}
-var transactionID = 1
 
 type CreateTransactionRequest struct {
 	AddressID int `json:"address_id"`
@@ -34,73 +17,85 @@ type CreateTransactionRequest struct {
 
 
 func CreateTransaction(c *gin.Context){
-	trreq := CreateTransactionRequest{}
-	c.ShouldBindJSON(&trreq)
+	var trreq CreateTransactionRequest
+	if err := c.ShouldBindJSON(&trreq); err != nil{
+		c.JSON(400, gin.H{
+			"error" : "invalid request",
+		})
+		return
+	}
+	
 	email := c.GetString("email")
 
-	addressFound := false
-
-	for _, addr := range addresses{
-		if addr.ID == trreq.AddressID && addr.Owner == email{
-			addressFound = true
-			break
-		}
+	var user models.User
+	if err:= config.DB.
+	Where("email = ?", email).
+	First(&user).
+	Error; err != nil{
+		c.JSON(404, gin.H{
+			"error": "user not found",
+		})
+		return
 	}
 
-	if !addressFound {
-    c.JSON(400, gin.H{
-        "error": "address not found",
-    })
-    return
+	var address models.Address
+	if err:= config.DB.
+	Where("id = ? AND owner_id = ?", trreq.AddressID, user.ID).
+	First(&address).
+	Error; err != nil{
+		c.JSON(400, gin.H{
+			"error": "address not found",
+		})
+		return
 	}
+	
 	total := 0
-	var items = []TransactionItem{}
+	var items []models.TransactionItem
+	
 
 	for _, item := range trreq.Items{
-		productFound := (*Product)(nil)
-		for _, p := range products{
-			if p.ID == item.ProductID{
-				productFound = &p
-				break
-			}
+		var product models.Product
+		if err := config.DB.
+		Where("id = ?", item.ProductID).
+		First(&product).
+		Error; err != nil{
+			c.JSON(400, gin.H{
+				"error": "product not found",
+			})
+			return
 		}
-
-		if productFound == nil {
-    		c.JSON(400, gin.H{
-        	"error": "product not found",
-    		})
-    	return
-		}
-
-		subtotal := productFound.Price * item.Qty
+		subtotal := product.Price * item.Qty
 		total += subtotal
 
-		transactionItem := TransactionItem{
-		ProductID : productFound.ID,
-		ProductName : productFound.Name,
-		Price : productFound.Price,
+		items = append(items, models.TransactionItem{
+		ProductID : product.ID,
+		ProductName : product.Name,
+		Price : product.Price,
 		Qty : item.Qty,
 		Subtotal : subtotal,
-		}
-
-		items = append(items, transactionItem)
+	})
 	}
 
-	transaction := Transaction{
-		ID : transactionID,
-		Owner : email,
-		AddressID : trreq.AddressID,
-		Total : total,
+	transaction := models.Transaction{
+		UserID: user.ID,
+		AddressID: address.ID,
+		Total: total,
 	}
 
-	transactions = append(transactions, transaction)
+	if err:= config.DB.
+	Create(&transaction).
+	Error; err != nil{
+		c.JSON(500, gin.H{
+			"error": "failed to create transaction",
+		})
+		return
+	}
 
 	for i := range items{
-		items[i].TransactionID = transactionID
-		transactionItems = append(transactionItems, items[i])
+		items[i].TransactionID = transaction.ID
+		config.DB.Create(&items[i])
 	}
-	transactionID++
-
+	
 	c.JSON(201, gin.H{
 		"transaction": transaction,
 		"items": items,

@@ -61,6 +61,12 @@ func Register(c *gin.Context){
 
 	config.DB.Create(&user)
 
+	store := models.Store{
+		Name : "Toko " + user.Email ,
+		OwnerID :  user.ID,
+	}
+	config.DB.Create(&store)
+	
 	c.JSON(201, gin.H{
 		"message": "user registered successfully",
 	})	
