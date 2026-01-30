@@ -80,7 +80,6 @@ func Login(c *gin.Context){
 	Where("email = ?", login.Email).
 	First(&user).
 	Error
-	//storedPassword, exists := users[login.Email]
 
 	if err != nil {
 		c.JSON(401, gin.H{
