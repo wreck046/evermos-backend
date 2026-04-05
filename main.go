@@ -1,7 +1,10 @@
 package main
 
 import (
+	"os"
+
 	"evermos-backend/config"
+	"evermos-backend/middleware"
 	"evermos-backend/models"
 	"evermos-backend/routes"
 
@@ -10,8 +13,7 @@ import (
 
 func main() {
 	router := gin.Default()
-
-	routes.RegisterRoutes(router)
+	router.Use(middleware.CORSMiddleware())
 
 	config.ConnectDatabase()
 	config.DB.AutoMigrate(
@@ -23,5 +25,11 @@ func main() {
 		&models.TransactionItem{},
 		&models.Category{},
 	)
-	router.Run()
+	routes.RegisterRoutes(router)
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	router.Run(":" + port)
 }
