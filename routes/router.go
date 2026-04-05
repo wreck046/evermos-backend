@@ -8,7 +8,7 @@ import (
 )
 
 func RegisterRoutes(router *gin.Engine){
-	router.GET("/health", middleware.JWTAuth, handlers.HealthCheck)
+	router.GET("/health", handlers.HealthCheck)
 
 	router.POST("/register", handlers.Register)
 	router.POST("/login", handlers.Login)
